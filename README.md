@@ -1,0 +1,1 @@
+This repository contains JavaScript,CSS and other assets that will be served from a content distribution network. These works are distributed under their respective licences, not all of which are open source or free.
