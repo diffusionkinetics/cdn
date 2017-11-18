@@ -1,0 +1,4 @@
+domain cdn.diffusionkinetics.com:
+  static: public/
+  letsEncrypt: true
+  isCDN: true
