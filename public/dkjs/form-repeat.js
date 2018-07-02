@@ -1,23 +1,66 @@
-$(document).ready(function () {
-    var max_fields = 10; //maximum input boxes allowed
-    var wrapper = $(".input_fields_wrap"); //Fields wrapper
-    var add_button = $(".add_field_button"); //Add button ID
-    
+var youidoItemClass = 'youido_multi_item';
+var youidoDummyItem = 'youido_dummy_item';
 
-    var x = 1; //initlal text box count
-    $(add_button).click(function (e) { //on add input button click
-        e.preventDefault();
-        if (x < max_fields) { //max input box allowed
-            x++; //text box increment
-            var cloned_elem = $(".cloneable:last").clone();
-            cloned_elem.children('input').val("");
-            cloned_elem.removeClass("first_row")
-            //cloned_elem.append('<button class="remove_field">-</button>');
-            $(wrapper).append(cloned_elem); //add input box
-        }
-    });
+function youidoReplaceIndex(currentPath, pathRegexp, idx) {
+  return currentPath.replace(pathRegexp, '$1.' + idx);
+}
 
-    $(wrapper).on("click", ".remove_field", function (e) { //user click on remove text
-        e.preventDefault(); $(this).parent('div').remove(); x--;
-    })
-});
+function youidoUpdatePaths($items, fieldName, fieldPath) {
+  // regex matches e.g. form.fieldName.0 and form.fieldName.-1
+  var regex = new RegExp('^(' + fieldPath + ')\\.-?\\d+');
+  var attrs = ['for', 'id', 'name'];
+  $items.each(function (idx) {
+    for (var j=0; j < attrs.length; j++) {
+      $(this).find("*[" + attrs[j] + "^='" + fieldPath + ".']")
+	.attr(attrs[j], function(i,old) {
+	  return youidoReplaceIndex(old, regex, idx);
+	});
+    }
+  });
+}
+
+function youidoGetFieldPath(itemsDiv) {
+  var indices = $(itemsDiv).children("input[id$='.indices']")[0];
+  if (!!indices) {
+    return indices.id.replace(/\.indices$/, '');
+  } else return null;
+}
+
+function youidoUpdateIndices(fieldPath, newLength) {
+  var newVal = '';
+  for (var i=0; i < newLength; i++) {
+    newVal = newVal + i;
+    if (i < newLength - 1) {
+      newVal = newVal + ',';
+    }
+  }
+  var indices = document.getElementById(fieldPath + '.indices');
+  indices.setAttribute('value', newVal);
+}
+
+function youidoUpdate($items, fieldName, fieldPath) {
+  var dummySel = "[id='" + fieldPath + '.' + youidoDummyItem + "']";
+  var $itemsNoDummy = $items.not(dummySel);
+  youidoUpdatePaths($itemsNoDummy, fieldName, fieldPath);
+  youidoUpdateIndices(fieldPath, $itemsNoDummy.length);
+}
+
+function youidoAddItem(itemsDiv, fieldName) {
+  var fieldPath = youidoGetFieldPath(itemsDiv);
+  var dummyId = fieldPath + '.' + youidoDummyItem;
+  var dummy = document.getElementById(dummyId);
+  var newItem = dummy.cloneNode(true);
+  newItem.setAttribute('style', 'display: inherit');
+  newItem.setAttribute('id', newItem.getAttribute('id').replace(dummyId, ''));
+  var $items = $(itemsDiv).children('div.' + youidoItemClass);
+  $items[$items.length - 1].after(newItem);
+  $items.push(newItem);
+  youidoUpdate($items, fieldName, fieldPath);
+}
+
+function youidoRemoveItem(item, fieldName) {
+  var itemsDiv = item.parentNode;
+  var fieldPath = youidoGetFieldPath(itemsDiv);
+  itemsDiv.removeChild(item);
+  youidoUpdate($(itemsDiv).children('div.' + youidoItemClass), fieldName, fieldPath);
+}
